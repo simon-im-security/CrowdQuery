@@ -1,9 +1,8 @@
 # NG-SIEM Toolkit
 
-This browser extension is designed to streamline and optimise detection and investigation workflows within CrowdStrike.
+This browser extension is designed to streamline and optimise detection and investigation workflows within CrowdStrike.  
 Note, this project is not affiliated with CrowdStrike.
 
-The extension is released under the Attribution-ShareAlike License (CC BY-SA)
 <div align="center">
   <img src="https://github.com/simon-im-security/NG-SIEM-Toolkit/blob/main/Images/main.png" alt="Main Interface - Popup HTML" width="45%">
   <img src="https://github.com/simon-im-security/NG-SIEM-Toolkit/blob/main/Images/settings.png" alt="Settings Page - Settings HTML" width="45%">
@@ -14,10 +13,10 @@ The extension is released under the Attribution-ShareAlike License (CC BY-SA)
 
 ## Main Features
 
-- Automates detection actions
-- Displays detection data
-- Simplifies investigation workflows
-- Provides tools for customisable searches
+- **Automates detection actions**
+- **Displays detection data**
+- **Simplifies investigation workflows**
+- **Provides tools for customisable searches**
 
 ## Installation
 
@@ -42,3 +41,12 @@ The NG-SIEM Toolkit works on Chromium-based browsers such as **Chrome**, **Edge*
    - The NG-SIEM Toolkit should now appear in your list of extensions.
 
 ---
+
+## Supported Servers
+
+- **Current:** `us-2`  
+- The toolkit is designed to function across all CrowdStrike servers. If you encounter any compatibility issues, please provide your CrowdStrike server URL (e.g., `falcon.us-1.xxx`) so that support can be extended accordingly.
+
+## License
+
+The extension is released under the **Attribution-ShareAlike License (CC BY-SA)**.
