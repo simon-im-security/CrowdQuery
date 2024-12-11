@@ -1,0 +1,107 @@
+<!-- Title: Login Required Page for NG-SIEM Toolkit
+  Description: Displays login options for CrowdStrike sessions to ensure the extension operates with an active session.
+  Author: Simon .I
+  Version: 2024.12.11
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Required</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      color: #333;
+    }
+    .container {
+      text-align: center;
+      background: white;
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 500px;
+    }
+    .container img {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 15px;
+    }
+    .container h1 {
+      font-size: 24px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    .container p {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    .button-container {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+    .button-container a {
+      display: inline-block;
+      text-decoration: none;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+    .local-login {
+      background-color: #0073e6;
+    }
+    .local-login:hover {
+      background-color: #005bb5;
+    }
+    .sso-login {
+      background-color: #28a745;
+    }
+    .sso-login:hover {
+      background-color: #218838;
+    }
+    .error-container {
+      text-align: center;
+      color: #ff0000;
+    }
+    .error-container a {
+      display: inline-block;
+      text-decoration: none;
+      color: #fff;
+      padding: 12px 20px;
+      background-color: #0073e6;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+    .error-container a:hover {
+      background-color: #005bb5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="icons/128.png" alt="App Icon" />
+    <h1>CrowdStrike Session Required</h1>
+    <p>Log in and retry the search.</p>
+    <div class="button-container">
+      <!-- Login buttons dynamically updated -->
+      <a href="#" id="localLogin" class="local-login">Local Login</a>
+      <a href="#" id="ssoLogin" class="sso-login">SSO Login</a>
+    </div>
+  </div>
+  <script src="login_required.js"></script>
+</body>
+</html>

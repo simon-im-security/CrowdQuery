@@ -1,0 +1,235 @@
+<!-- 
+  Title: Popup Interface for NG-SIEM Toolkit
+  Description: Provides a user interface for hostname searches, detection time configuration, and quick access to recent searches and settings.
+  Author: Simon .I
+  Version: 2024.12.11
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NG-SIEM Toolkit</title>
+  <script type="module" src="popup.js" defer></script>
+  <style>
+    :root {
+      --button-blue: #0056b3;
+      --button-hover-blue: #003d80;
+      --button-green: #28a745;
+      --button-hover-green: #218838;
+      --button-gray: #6c757d;
+      --button-hover-gray: #5a6268;
+      --button-disabled: #e0e0e0;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      text-align: center;
+      padding: 25px;
+      background-color: #f9f9f9;
+      color: #333;
+      width: 700px;
+      height: 600px;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    .container {
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-top: 25px;
+    }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    img {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 15px;
+    }
+
+    label {
+      text-align: left;
+      display: block;
+      font-size: 14px;
+      margin-bottom: 5px;
+      margin-left: 5%;
+      color: #666;
+    }
+
+    input[type="text"], select {
+      width: 90%;
+      padding: 14px 22px;
+      font-size: 16px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      transition: border 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    input[type="text"]:focus, select:focus {
+      border: 1px solid var(--button-blue);
+      box-shadow: 0 0 4px rgba(0, 86, 179, 0.5);
+    }
+
+    select:disabled {
+      background-color: var(--button-disabled);
+      color: #aaa;
+      cursor: not-allowed;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      color: white;
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 8px;
+      margin: 10px 0;
+      transition: background-color 0.3s ease;
+      width: 90%;
+    }
+
+    button:disabled {
+      background-color: #dcdcdc; /* Frosted grey */
+      color: #999; /* Softer text */
+      cursor: not-allowed;
+      opacity: 0.7; /* Slightly transparent for visual feedback */
+    }
+
+
+
+    #scanButton {
+      background-color: var(--button-blue);
+    }
+
+    #scanButton:hover {
+      background-color: var(--button-hover-blue);
+    }
+
+    #reloadInvestigationButton {
+      background-color: var(--button-green);
+    }
+
+    #reloadInvestigationButton:hover {
+      background-color: var(--button-hover-green);
+    }
+
+    #settingsButton {
+      background-color: var(--button-gray);
+    }
+
+    #settingsButton:hover {
+      background-color: var(--button-hover-gray);
+    }
+
+    .recent-searches {
+      margin-top: 10px;
+      text-align: left;
+      font-size: 14px;
+      color: #333;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .recent-searches h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .recent-searches .placeholder {
+      color: #999;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .recent-searches a {
+      color: #007bff;
+      text-decoration: none;
+      margin-right: 10px;
+    }
+
+    .recent-searches a:hover {
+      text-decoration: underline;
+    }
+
+    .timestamp {
+      color: #666;
+      font-size: 13px;
+    }
+
+    #popupToast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #4CAF50;
+      color: #fff;
+      padding: 20px 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      font-size: 18px;
+      z-index: 10000;
+      text-align: center;
+      max-width: 85%;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="page-title">NG-SIEM Toolkit</div>
+    <img src="icons/128.png" alt="NG-SIEM Toolkit Icon">
+
+    <label for="hostnameInput">Hostname</label>
+    <input type="text" id="hostnameInput" placeholder="e.g., 9870L-215523-M" aria-label="Input hostname">
+
+    <label for="detectionTimeInput">Detection Time (Optional)</label>
+    <input type="text" id="detectionTimeInput" placeholder="e.g., Nov. 11, 2024 11:12:50" aria-label="Input detection time">
+
+    <label for="timeRangeSelect">Time Range</label>
+    <select id="timeRangeSelect" aria-label="Select time range" disabled>
+      <option disabled selected>Select Time Range</option>
+      <option value="30">30 seconds before and after</option>
+      <option value="60">60 seconds before and after</option>
+      <option value="300">5 minutes before and after</option>
+      <option value="3600">60 minutes before and after</option>
+      <option value="86400">24 hours before and after</option>
+      <option value="604800">7 days before and after</option>
+      <option value="2592000">30 days before and after</option>
+    </select>
+
+    <button id="scanButton" aria-label="Search hostname">Search Hostname (Last 7 Days)</button>
+    <button id="reloadInvestigationButton" aria-label="Update investigation tabs" disabled title="Enter Detection Time to enable this button">
+      Update Investigation Tabs
+    </button>
+    
+    <button id="settingsButton" aria-label="Open settings">Settings</button>
+
+    <div class="recent-searches" id="recentSearchesContainer">
+      <h3>Recent Searches</h3>
+      <div class="placeholder">You haven't performed any searches yet.</div>
+    </div>
+
+    <!-- Toast Element -->
+    <div id="popupToast"></div>
+  </div>
+</body>
+</html>

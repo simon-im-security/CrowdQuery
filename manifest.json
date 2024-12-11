@@ -1,0 +1,62 @@
+{
+  "manifest_version": 3,
+  "name": "NG-SIEM Toolkit",
+  "version": "2024.12.11",
+  "description": "Automates detection actions, displays detection data, opens investigation pages, and maintains recent hostname searches.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "notifications",
+    "activeTab",
+    "contextMenus"
+  ],
+  "icons": {
+    "16": "icons/16.png",
+    "128": "icons/128.png"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icons/128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.crowdstrike.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": [
+    "*://*.crowdstrike.com/*"
+  ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y"
+      },
+      "description": "Open the CrowdStrike NG-SIEM popup interface"
+    }
+  },
+  "options_page": "settings.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/128.png",
+        "popup.js",
+        "content.js",
+        "popup.html", 
+        "resume_search.html",
+        "resume_search.js",
+        "settings.js",
+        "settings.html",
+        "login_required.js",
+        "login_required.html"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

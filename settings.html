@@ -1,0 +1,228 @@
+<!-- 
+  Title: Settings Page for NG-SIEM Toolkit
+  Description: Provides configuration options for base URL, investigation queries, and other settings for the NG-SIEM Toolkit extension.
+  Author: Simon .I
+  Version: 2024.12.11
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NG-SIEM Toolkit Settings</title>
+  <style>
+    :root {
+      --button-dark-blue: #003366;
+      --button-hover-dark-blue: #002244;
+      --button-green: #28a745;
+      --button-hover-green: #218838;
+      --input-hover-border: #0056b3;
+      --toast-success: #28a745;
+      --toast-error: #f44336;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      text-align: center;
+      padding: 25px;
+      background-color: #f4f4f4;
+      color: #333;
+      width: 900px;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    .container {
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+      margin-top: 25px;
+    }
+
+    .page-title {
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .instructions {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .version {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    img {
+      width: 128px;
+      height: 128px;
+      margin-bottom: 15px;
+    }
+
+    label {
+      font-weight: bold;
+      font-size: 16px;
+      display: block;
+      margin-bottom: 8px;
+      text-align: left;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 14px 22px;
+      font-size: 16px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      transition: border 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    input[type="text"]:hover, textarea:hover {
+      border-color: var(--input-hover-border);
+    }
+
+    textarea {
+      height: 250px;
+      resize: vertical;
+    }
+
+    button {
+      color: white;
+      border: none;
+      cursor: pointer;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      margin-top: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .save-button {
+      background-color: var(--button-green);
+    }
+
+    .save-button:hover {
+      background-color: var(--button-hover-green);
+      transform: translateY(-2px);
+    }
+
+    .error-message {
+      color: red;
+      font-size: 14px;
+      margin-top: -10px;
+      margin-bottom: 10px;
+      text-align: left;
+      display: none;
+    }
+
+    .tab-container {
+      background: #f9f9f9;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin-bottom: 25px;
+      position: relative;
+    }
+
+    .tab-label {
+      position: absolute;
+      top: -15px;
+      left: 20px;
+      background: #ffffff;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 0 10px;
+      color: #333;
+      border-radius: 12px;
+    }
+
+    .variable-explanation {
+      text-align: left;
+      background-color: #f9f9f9;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      font-size: 14px;
+    }
+
+    /* Toast Styles */
+    #settingsToast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: var(--toast-success);
+      color: #fff;
+      padding: 15px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      z-index: 10000;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+  </style>
+  <script src="settings.js" defer></script>
+</head>
+<body>
+  <div class="version">Version: 2024.11.19</div>
+
+  <div class="container">
+    <div class="page-title">NG-SIEM Toolkit Settings</div>
+    <img src="icons/128.png" alt="NG-SIEM Toolkit Icon" aria-label="NG-SIEM Toolkit Icon">
+
+    <p class="instructions">
+      Update the settings below and click "Save Settings" to apply changes. Default variables like <code>$hostname</code> and <code>$detectionTime</code> will be expanded dynamically during searches.
+    </p>
+
+    <div class="variable-explanation">
+      <p><strong>Variable Definitions:</strong></p>
+      <ul>
+        <li><code>$hostname</code>: Populated from the "Hostname" field in the popup.</li>
+        <li><code>$detectionTime</code>: Populated from the "Detection Time" field in the popup.</li>
+      </ul>
+    </div>
+
+    <label for="baseUrl">CrowdStrike Base URL:</label>
+    <input type="text" id="baseUrl" placeholder="e.g., https://falcon.us-2.crowdstrike.com" aria-label="Enter the CrowdStrike Base URL">
+    <span id="baseUrlError" class="error-message">Please enter a valid CrowdStrike Base URL.</span>
+
+    <div class="tab-container">
+      <div class="tab-label">Tab 1</div>
+      <label for="searchTab1">Investigation Query:</label>
+      <textarea id="searchTab1" placeholder="Enter the query for Investigation Tab 1" aria-label="Investigation Query for Tab 1"></textarea>
+    </div>
+
+    <div class="tab-container">
+      <div class="tab-label">Tab 2</div>
+      <label for="searchTab2">Investigation Query:</label>
+      <textarea id="searchTab2" placeholder="Enter the query for Investigation Tab 2" aria-label="Investigation Query for Tab 2"></textarea>
+    </div>
+
+    <div class="tab-container">
+      <div class="tab-label">Tab 3</div>
+      <label for="searchTab3">Investigation Query:</label>
+      <textarea id="searchTab3" placeholder="Enter the query for Investigation Tab 3" aria-label="Investigation Query for Tab 3"></textarea>
+    </div>
+
+    <button id="saveSettings" class="save-button" aria-label="Save Settings">Save Settings</button>
+
+    <!-- Toast Notification -->
+    <div id="settingsToast"></div>
+  </div>
+</body>
+</html>
