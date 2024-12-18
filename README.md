@@ -20,7 +20,9 @@ Note, this project is not affiliated with CrowdStrike.
 
 ## Installation
 
-The NG-SIEM Toolkit works on Chromium-based browsers such as **Chrome**, **Edge**, **Brave**, and others. Follow these steps to install:
+The NG-SIEM Toolkit works on Chromium-based browsers such as **Chrome**, **Edge**, **Brave**, and others.  
+**⚠️ It must be installed on the same browser you use to access CrowdStrike.**  
+Follow these steps to install:
 
 1. **Download the ZIP File:**
    - Visit the [download page](https://github.com/simon-im-security/NG-SIEM-Toolkit/releases/tag/base).
