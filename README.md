@@ -25,7 +25,7 @@ The NG-SIEM Toolkit works on Chromium-based browsers such as **Chrome**, **Edge*
 Follow these steps to install:
 
 1. **Download the ZIP File:**
-   - Visit the [download page](https://github.com/simon-im-security/NG-SIEM-Toolkit/releases/tag/base).
+   - Visit the [download page](https://github.com/simon-im-security/NG-SIEM-Toolkit/releases/tag/main).
    - Click the **NG-SIEM.Toolkit_x.x.zip** button to begin downloading the app.
 
 2. **Extract the ZIP File:**
