@@ -13,9 +13,7 @@ Note, this project is not affiliated with CrowdStrike.
 
 ## Main Features
 
-- **Automates detection actions**
-- **Displays detection data**
-- **Simplifies investigation workflows**
+- **Automates detection search queries**
 - **Provides tools for customisable searches**
 
 ## Installation
@@ -47,7 +45,7 @@ Follow these steps to install:
 ## Supported Servers
 
 - **Current:** `us-2`  
-- The extension is designed to function across all CrowdStrike servers. If you encounter any compatibility issues, please provide your CrowdStrike server URL (e.g., `falcon.us-1.xxx`) so that support can be extended accordingly.
+- The extension is designed to function across all CrowdStrike servers. If you encounter any compatibility issues, please provide your CrowdStrike server URL (e.g., `falcon.us-1.xxx`) and any error logs so that support can be extended accordingly.
 
 ## License
 
