@@ -1,8 +1,8 @@
 /*
-  Title: Login Script for NG-SIEM Toolkit
+  Title: Login Script for CrowdQuery.
   Description: Handles dynamic login URLs, error handling for missing CrowdStrike session or base URL, and resuming the last search after login.
   Author: Simon .I
-  Version: 2024.12.11
+  Version: 2025.05.27
 */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -46,4 +46,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // The resume button does not belong on this page, so it's not included here
     // No actions related to resuming the search are needed here
   });
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.url.includes("/dashboards")) {
+    console.log("[LOGIN_REQUIRED] Login complete, closing login tab.");
+    chrome.tabs.remove(tabId);
+  }
 });

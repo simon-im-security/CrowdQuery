@@ -1,7 +1,7 @@
-// Title: Background Script for NG-SIEM Toolkit
-// Description: Manages detection and investigation pages with session tracking and notification support for the NG-SIEM Toolkit.
+// Title: Background Script for CrowdQuery.
+// Description: Manages detection and investigation pages with session tracking and notification support.
 // Author: Simon .I
-// Version: 2024.12.11
+// Version: 2025.05.27
 
 // Listens for unhandled promise rejections in the service worker context, other unhandled rejections are logged for debugging purposes.
 self.addEventListener("unhandledrejection", (event) => {
@@ -20,84 +20,158 @@ self.addEventListener("unhandledrejection", (event) => {
 
 // Monitor tabs opened during search for navigation to the login page
 let loginPageOpen = false; // Flag to track if login page is already open
-let triggeredTabs = new Set(); // Track tabs that have triggered post-login actions
 
+// Map to track debounce timers for tabs
+const urlDebounceTimers = new Map();
+
+// Listen for tab updates
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    console.log(`[DEBUG] Tab Updated - ID: ${tabId}, URL: ${tab.url || "N/A"}`);
+    if (changeInfo.status === "complete" && tab.url) {
+        console.log(`[DEBUG][${new Date().toISOString()}] Tab Updated - ID: ${tabId}, URL: ${tab.url}`);
 
-    chrome.storage.local.get(["baseUrl", "lastInvestigationSession"], (data) => {
+        // Clear any existing debounce timer for this tab
+        clearTimeout(urlDebounceTimers.get(tabId));
+
+        // Set a debounce timer to process the tab after a delay
+        const debounceDelay = 500; // Adjust delay as needed
+        const debounceTimer = setTimeout(() => {
+            processTabUpdate(tabId, tab.url);
+            urlDebounceTimers.delete(tabId); // Remove timer from map after processing
+        }, debounceDelay);
+
+        urlDebounceTimers.set(tabId, debounceTimer);
+    }
+});
+
+// Function to check the session cookie
+function checkFalconSession(callback) {
+    chrome.storage.local.get(["baseUrl"], (data) => {
         const baseUrl = data.baseUrl;
-        const session = data.lastInvestigationSession || {};
-        const { tabIds = [] } = session;
-
-        // Debug: Log current session details and tab monitoring
-        console.log(`[DEBUG] Base URL: ${baseUrl}`);
-        console.log(`[DEBUG] Last Investigation Session:`, session);
-
-        // Skip if baseUrl is missing or invalid
-        if (!baseUrl || !isValidUrl(baseUrl)) {
-            console.warn("[DEBUG] Base URL is not set or invalid.");
+        
+        if (!baseUrl) {
+            logWarn("Base URL is not set in the settings.");
+            callback(false); // Session invalid as there's no base URL
             return;
         }
 
-        // Debug: Check if the tab is part of the monitored tabs
-        console.log(`[DEBUG] Is Tab Monitored? ${tabIds.includes(tabId)}`);
+        // Extract the domain from the baseUrl
+        const url = new URL(baseUrl);
+        const cookieDomain = url.hostname; // e.g., "falcon.us-2.crowdstrike.com"
+        const cookieName = "id";
 
-        // Handle navigation to the login page
-        if (changeInfo.status === "complete" && tab.url.startsWith(`${baseUrl}/login`)) {
-            console.log(`[DEBUG] Login page detected in monitored tab: ${tabId}`);
+        chrome.cookies.getAllCookieStores((stores) => {
+            const incognitoStore = stores.find(store => store.incognito);
+            const storeId = incognitoStore ? incognitoStore.id : stores[0].id;
+          
+            chrome.cookies.get({
+              url: `https://${cookieDomain}`,
+              name: cookieName,
+              storeId
+            }, (cookie) => {
+              if (!cookie) {
+                logDebug("No session cookie found. Login required.");
+                callback(false);
+                return;
+              }
+          
+              const currentTime = Date.now() / 1000;
+              if (cookie.expirationDate && cookie.expirationDate < currentTime) {
+                logDebug("Session cookie expired. Login required.");
+                callback(false);
+                return;
+              }
+          
+              logDebug("Session cookie is valid.");
+              callback(true);
+            });
+          });
+          
+            if (!cookie) {
+                logDebug("No session cookie found. Login required.");
+                callback(false); // Session invalid
+                return;
+            }
 
-            // Check if `login_required.html` is already open
-            chrome.tabs.query({ url: chrome.runtime.getURL("login_required.html") }, (existingTabs) => {
-                if (existingTabs.length > 0 || loginPageOpen) {
-                    console.log("[DEBUG] Login required page already open. Skipping new tab creation.");
-                    return; // Prevent duplicate tabs
+            logDebug("Found session cookie:", cookie);
+
+            const currentTime = Date.now() / 1000; // Convert to seconds
+            if (cookie.expirationDate && cookie.expirationDate < currentTime) {
+                logDebug("Session cookie expired. Login required.");
+                callback(false); // Session expired
+                return;
+            }
+
+            logDebug("Session cookie is valid.");
+            callback(true); // Session valid
+        });
+}
+
+// Function to open tabs or redirect to login page
+function openTabsOrLogin() {
+    checkFalconSession((isLoggedIn) => {
+        if (isLoggedIn) {
+            console.log("[DEBUG] Session is active. Opening tabs.");
+            // Open investigation tabs
+            openInvestigationTabs();
+        } else {
+            console.log("[DEBUG] Session inactive. Redirecting to login_required.html.");
+            chrome.tabs.query({ url: chrome.runtime.getURL("login_required.html") }, (tabs) => {
+                if (tabs.length > 0) {
+                    console.log("[DEBUG] login_required.html is already open. Not opening a new tab.");
+                } else {
+                    chrome.tabs.create({ url: chrome.runtime.getURL("login_required.html") });
                 }
-
-                // Set the flag to indicate the login page is open
-                loginPageOpen = true;
-
-                // Close all monitored tabs
-                tabIds.forEach((id) => {
-                    console.log(`[DEBUG] Closing monitored tab ID: ${id}`);
-                    chrome.tabs.remove(id, () => {
-                        if (chrome.runtime.lastError) {
-                            console.warn(`[DEBUG] Failed to close tab ${id}: ${chrome.runtime.lastError.message}`);
-                        }
-                    });
-                });
-
-                // Open the custom login-required HTML page
-                console.log("[DEBUG] Opening login_required.html");
-                chrome.tabs.create({
-                    url: chrome.runtime.getURL("login_required.html"),
-                    active: true,
-                });
-
-                // Clear the session data
-                chrome.storage.local.remove("lastInvestigationSession", () => {
-                    console.log("[DEBUG] Cleared last investigation session.");
-                });
             });
         }
+    });
+}
 
-        // Monitor successful login navigation (e.g., `https://falcon.*.crowdstrike.com/dashboards*`)
-        const regexPattern = /^https:\/\/falcon\..*\.crowdstrike\.com\/dashboards.*$/;
-        console.log(`[DEBUG] Regex Pattern: ${regexPattern}`);
+chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason === "install") {
+        console.log("[INFO] First install detected. No session check performed.");
+        // Do not check for cookies here
+    }
+});
 
-        if (
-            changeInfo.status === "complete" &&
-            regexPattern.test(tab.url) &&
-            !triggeredTabs.has(tabId)
-        ) {
-            console.log(`[DEBUG] Successful login detected at URL: ${tab.url}`);
+/**
+ * Processes tab updates after the debounce period.
+ * @param {number} tabId - The ID of the updated tab.
+ * @param {string} url - The updated tab's URL.
+ */
+const processedTabs = new Map(); // Track processed tab states
 
-            // Mark the tab as triggered to prevent duplicate actions
-            triggeredTabs.add(tabId);
+function processTabUpdate(tabId, url) {
+    if (processedTabs.get(tabId) === url) {
+        console.log(`[DEBUG][${new Date().toISOString()}] URL already processed for Tab ID ${tabId}: ${url}`);
+        return;
+    }
 
-        } else if (changeInfo.status === "complete") {
-            // Debug: Log why the URL didn't match
-            console.log(`[DEBUG] Tab URL did not match regex or action already triggered. URL: ${tab.url}`);
+    processedTabs.set(tabId, url); // Update the map with the current tab state
+
+    chrome.storage.local.get(["baseUrl"], (data) => {
+        const baseUrl = data.baseUrl || "";
+        const regexPattern = /^https:\/\/falcon\..*\.crowdstrike\.com\/dashboards(-v2)?\/[^?]*$/;
+
+        if (url.includes("/login")) {
+            console.log(`[DEBUG][${new Date().toISOString()}] Excluding intermediate login URL: ${url}`);
+            return;
+        }
+
+        if (regexPattern.test(url)) {
+            console.log(`[DEBUG][${new Date().toISOString()}] Valid dashboard URL detected: ${url}`);
+            handleSuccessfulLogin(tabId, url, baseUrl);
+        } else {
+            console.log(`[DEBUG][${new Date().toISOString()}] URL does not match valid dashboard pattern: ${url}`);
+        }
+    });
+}
+
+// Listener to reset loginPageOpen when login_required.html tabs are closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+    chrome.tabs.query({ url: chrome.runtime.getURL("login_required.html") }, (existingTabs) => {
+        if (existingTabs.length === 0) {
+            console.log("[DEBUG] All login_required.html tabs closed. Resetting loginPageOpen flag.");
+            loginPageOpen = false; // Reset the flag
         }
     });
 });
@@ -127,6 +201,87 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             handleCrowdStrikeActions(message, sendResponse);
             break;
 
+        case "checkAndOpenTabs":
+            logDebug("Received message to check session and open tabs.");
+            checkFalconSession((isLoggedIn) => {
+                if (isLoggedIn) {
+                    logDebug("Session is active. Proceeding to open tabs.");
+
+                    // Open the primary tab first
+                    chrome.tabs.create({ url: message.primaryUrl, active: true }, (primaryTab) => {
+                        if (chrome.runtime.lastError) {
+                            logError("Failed to open primary tab:", chrome.runtime.lastError.message);
+                            sendResponse({ success: false, message: "Failed to open primary tab." });
+                            return;
+                        }
+
+                        const investigationTabIds = [];
+                        let tabsOpened = 1; // Start with the primary tab
+
+                        // Open investigation tabs
+                        message.investigationUrls.forEach((url, index) => {
+                            chrome.tabs.create({ url, active: false }, (tab) => {
+                                if (chrome.runtime.lastError) {
+                                    logError(`Failed to open investigation tab ${index + 1}: ${chrome.runtime.lastError.message}`);
+                                } else {
+                                    investigationTabIds.push(tab.id);
+                                    tabsOpened++;
+                                    logDebug(`Investigation tab ${index + 1} opened:`, tab.id);
+
+                                    // Save session once all tabs are opened
+                                    if (tabsOpened === 4) {
+                                        chrome.storage.local.set({
+                                            lastInvestigationSession: {
+                                                input: message.input,
+                                                selectedType: message.selectedType,
+                                                primaryTabId: primaryTab.id,
+                                                investigationTabIds,
+                                                primaryUrl: message.primaryUrl,
+                                                investigationUrls: message.investigationUrls,
+                                                startTime: message.start,
+                                                endTime: message.end,
+                                            },
+                                        });
+                                        sendResponse({ success: true });
+                                    }
+                                }
+                            });
+                        });
+
+                        // Fallback for saving session if not all tabs were opened
+                        setTimeout(() => {
+                            if (tabsOpened < 4) {
+                                logWarn("Some tabs failed to open. Partial session saved.");
+                                chrome.storage.local.set({
+                                    lastInvestigationSession: {
+                                        input: message.input,
+                                        selectedType: message.selectedType,
+                                        primaryTabId: primaryTab.id,
+                                        investigationTabIds,
+                                        primaryUrl: message.primaryUrl,
+                                        investigationUrls: message.investigationUrls,
+                                        startTime: message.start,
+                                        endTime: message.end,
+                                    },
+                                });
+                                sendResponse({ success: true });
+                            }
+                        }, 5000); // Wait 5 seconds for all tabs to open
+                    });
+                } else {
+                    logWarn("Session is inactive. Redirecting to login_required.html.");
+                    chrome.tabs.query({ url: chrome.runtime.getURL("login_required.html") }, (tabs) => {
+                        if (tabs.length === 0) {
+                            chrome.tabs.create({ url: chrome.runtime.getURL("login_required.html") });
+                        } else {
+                            logDebug("login_required.html is already open.");
+                        }
+                    });
+                    sendResponse({ success: false, message: "Session inactive. Redirected to login page." });
+                }
+            });
+            return true;
+
         default:
             logWarn("Unhandled message action:", message.action);
             sendResponse({ success: false, message: "Unknown action." });
@@ -144,12 +299,12 @@ function handleResumeSearch(message, sendResponse) {
     logDebug("Resume search triggered.");
 
     chrome.storage.local.get(
-        ["lastHostname", "lastDetectionTime", "baseUrl", "tab1", "tab2", "tab3"],
+        ["lastinput", "lastDetectionTime", "baseUrl", "tab1", "tab2", "tab3"],
         (data) => {
-            const { lastHostname, lastDetectionTime, baseUrl, tab1, tab2, tab3 } = data;
+            const { lastinput, lastDetectionTime, baseUrl, tab1, tab2, tab3 } = data;
 
-            if (!lastHostname) {
-                logError("Missing required parameter: lastHostname");
+            if (!lastinput) {
+                logError("Missing required parameter: lastinput");
                 sendResponse({ success: false, error: "No search data found." });
                 return;
             }
@@ -160,15 +315,15 @@ function handleResumeSearch(message, sendResponse) {
                 return;
             }
 
-            logDebug(`Resuming search for Hostname: ${lastHostname}`);
+            logDebug(`Resuming search for input: ${lastinput}`);
 
             const startTime = lastDetectionTime || Date.now() - 7 * 24 * 60 * 60 * 1000; // Default: past 7 days
             const endTime = Date.now(); // Default: now
 
             logDebug("Resolved Start Time:", startTime, "Resolved End Time:", endTime);
 
-            const detectionUrl = generateDetectionUrl(baseUrl, lastHostname, startTime, endTime);
-            const investigationUrls = generateInvestigationUrls(baseUrl, lastHostname, startTime, endTime, {
+            const detectionUrl = generateDetectionUrl(baseUrl, lastinput, startTime, endTime);
+            const investigationUrls = generateInvestigationUrls(baseUrl, lastinput, startTime, endTime, {
                 tab1,
                 tab2,
                 tab3,
@@ -191,7 +346,7 @@ function handleResumeSearch(message, sendResponse) {
                 });
             }
 
-            handleOpenTabs(detectionUrl, investigationUrls, lastHostname, startTime, endTime, sendResponse);
+            handleOpenTabs(detectionUrl, investigationUrls, lastinput, startTime, endTime, sendResponse);
         }
     );
 }
@@ -214,18 +369,18 @@ function handleCrowdStrikeActions(message, sendResponse) {
         if (message.action === "updateInvestigationTabs") {
             handleUpdateTabs(session, { tab1, tab2, tab3 }, baseUrl, sendResponse);
         } else if (message.action === "openCrowdStrikePages") {
-            const { hostname, start, end } = resolveTimesAndUrls(message, session);
+            const { input, start, end } = resolveTimesAndUrls(message, session);
 
-            logDebug("Resolved Values from Request:", { hostname, start, end });
+            logDebug("Resolved Values from Request:", { input, start, end });
 
-            if (!hostname) {
-                logWarn("Hostname is required.");
-                sendResponse({ success: false, message: "Hostname is required." });
+            if (!input) {
+                logWarn("input is required.");
+                sendResponse({ success: false, message: "input is required." });
                 return;
             }
 
-            const detectionUrl = generateDetectionUrl(baseUrl, hostname, start, end);
-            const investigationUrls = generateInvestigationUrls(baseUrl, hostname, start, end, { tab1, tab2, tab3 }, message.detectionTime);
+            const detectionUrl = generateDetectionUrl(baseUrl, input, start, end);
+            const investigationUrls = generateInvestigationUrls(baseUrl, input, start, end, { tab1, tab2, tab3 }, message.detectionTime);
 
              // Debug logs
              console.log("[DEBUG] Detection URL:", detectionUrl);
@@ -234,7 +389,7 @@ function handleCrowdStrikeActions(message, sendResponse) {
              console.log("[DEBUG] Query for Tab 2:", tab2);
              console.log("[DEBUG] Query for Tab 3:", tab3);
 
-            handleOpenTabs(detectionUrl, investigationUrls, hostname, start, end, sendResponse, message.detectionTime);
+            handleOpenTabs(detectionUrl, investigationUrls, input, start, end, sendResponse, message.detectionTime);
         }
     });
 }
@@ -279,7 +434,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 /**
- * Resolve hostname, start, and end times for URL generation.
+ * Resolve input, start, and end times for URL generation.
  */
 function resolveTimesAndUrls(request, session) {
     const start = request.start ?? session.startTime ?? Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -290,7 +445,7 @@ function resolveTimesAndUrls(request, session) {
     console.log("[DEBUG] Resolved End Time (epoch):", end);
     console.log("[DEBUG] Resolved End Time (formatted):", new Date(end).toISOString());
 
-    return { hostname: request.hostname || session.hostname || "", start, end };
+    return { input: request.input || session.input || "", start, end };
 }
 
 /**
@@ -315,29 +470,33 @@ function formatTimestamp(timestamp) {
 }
 
 /**
- * Generate the detection URL for the hostname.
+ * Generate the detection URL for the input.
  * @param {string} baseUrl - Base URL for CrowdStrike.
- * @param {string} hostname - Hostname to investigate.
+ * @param {string} input - input to investigate.
  * @param {number} start - Start time in milliseconds (epoch).
  * @param {number} end - End time in milliseconds (epoch).
  * @returns {string} - The URL for the detection page.
  */
-function generateDetectionUrl(baseUrl, hostname, start, end) {
-    console.log("[DEBUG] Generating Detection URL with epoch times:", { start, end });
+function generateDetectionUrl(baseUrl, input, start, end) {
+    if (!baseUrl) {
+        logError("Base URL is missing. Cannot generate detection URL.");
+        return null;
+    }
+
     return `${baseUrl}/activity-v2/detections?filter=hostname%3A%27${hostname}%27&pageSize=200&start=${start}&end=${end}`;
 }
 
 /**
- * Generate investigation URLs based on hostname, time range, and user-defined queries.
+ * Generate investigation URLs based on input, time range, and user-defined queries.
  * @param {string} baseUrl - Base URL for CrowdStrike.
- * @param {string} hostname - Hostname to investigate.
+ * @param {string} input - input to investigate.
  * @param {number} start - Start time in milliseconds (epoch).
  * @param {number} end - End time in milliseconds (epoch).
  * @param {Object} tabsFromSettings - Object containing tab queries (tab1, tab2, tab3).
  * @param {number} [detectionTime] - Optional detection time in milliseconds (epoch).
  * @returns {string[]} - List of URLs for investigation tabs.
  */
-function generateInvestigationUrls(baseUrl, hostname, start, end, tabsFromSettings, detectionTime) {
+function generateInvestigationUrls(baseUrl, input, start, end, tabsFromSettings, detectionTime) {
     console.log("[DEBUG] Generating Investigation URLs with epoch times:", { start, end });
 
     const queries = [
@@ -354,7 +513,7 @@ function generateInvestigationUrls(baseUrl, hostname, start, end, tabsFromSettin
 
         try {
             const expandedQuery = query
-                .replace(/\$hostname/g, hostname)
+                .replace(/\$input/g, input)
                 .replace(/\$startTime/g, new Date(start).toISOString())
                 .replace(/\$endTime/g, new Date(end).toISOString())
                 .replace(/\$detectionTime/g, detectionTime ? new Date(detectionTime).toISOString() : "");
@@ -375,95 +534,71 @@ function generateInvestigationUrls(baseUrl, hostname, start, end, tabsFromSettin
  * Open tabs for detection and investigation URLs.
  * @param {string} detectionUrl - URL for the detection page.
  * @param {string[]} investigationUrls - URLs for investigation tabs.
- * @param {string} hostname - Hostname being investigated.
+ * @param {string} input - input being investigated.
  * @param {number} start - Start time for the investigation.
  * @param {number} end - End time for the investigation.
  * @param {Function} sendResponse - Callback to notify the caller.
  * @param {number} [detectionTime] - Optional detection time.
  */
-function handleOpenTabs(detectionUrl, investigationUrls, hostname, start, end, sendResponse, detectionTime) {
+function handleOpenTabs(detectionUrl, investigationUrls, input, start, end, sendResponse) {
     let detectionTabId;
     const investigationTabIds = [];
     const tabIds = [];
     const expectedTabs = 1 + investigationUrls.length; // Detection + Investigation tabs
 
-    const toastMessages = [
-        "Detection Overview",
-        "Command Analysis",
-        "Potential Target",
-        "Network Activity",
-    ];
-
-    const toastColors = [
-        "#D4B21F", // Darker Mustard Yellow for Overview
-        "#3CB371", // Medium Sea Green for Commands
-        "#FF5722", // Deep Orange for Potential Target
-        "#007BFF", // Blue for Network
-    ];    
-      
-    console.log("[DEBUG] Opening tabs with the following URLs:");
-    console.log("Detection URL:", detectionUrl);
-    console.log("Investigation URLs:", investigationUrls);
+    logDebug("Opening tabs with the following URLs:", { detectionUrl, investigationUrls });
 
     // Open Detection Tab
     chrome.tabs.create({ url: detectionUrl, active: true }, (tab) => {
         if (chrome.runtime.lastError || !tab) {
-            console.error("[ERROR] Failed to open Detection Tab:", chrome.runtime.lastError?.message);
+            logError("Failed to open Detection Tab:", chrome.runtime.lastError?.message);
             sendResponse({ success: false, message: "Failed to open Detection tab." });
             return;
         }
         detectionTabId = tab.id;
         tabIds.push(tab.id);
-        console.log("[DEBUG] Detection Tab Opened:", tab.id);
+        logDebug("Detection Tab Opened:", tab.id);
 
-        // Display Toast Notification
-        showToastInTab(tab.id, toastMessages[0], toastColors[0]);
+        // Open Investigation Tabs
+        investigationUrls.forEach((url, index) => {
+            chrome.tabs.create({ url, active: false }, (tab) => {
+                if (chrome.runtime.lastError || !tab) {
+                    logError(`Failed to open Investigation Tab ${index + 1}:`, chrome.runtime.lastError?.message);
+                    return;
+                }
+                investigationTabIds.push(tab.id);
+                tabIds.push(tab.id);
+                logDebug(`Investigation Tab ${index + 1} Opened:`, tab.id);
 
-        saveSessionAndRespond();
-    });
-
-    // Open Investigation Tabs
-    investigationUrls.forEach((url, index) => {
-        chrome.tabs.create({ url, active: false }, (tab) => {
-            if (chrome.runtime.lastError || !tab) {
-                console.error(`[ERROR] Failed to open Investigation Tab ${index + 1}:`, chrome.runtime.lastError?.message);
-                return;
-            }
-            investigationTabIds.push(tab.id);
-            tabIds.push(tab.id);
-            console.log(`[DEBUG] Investigation Tab ${index + 1} Opened:`, tab.id);
-
-            // Display Toast Notification
-            showToastInTab(tab.id, toastMessages[index + 1] || "Investigation Tab Opened", toastColors[index + 1] || "#28a745");
-
-            saveSessionAndRespond();
-        });
-    });
-
-    // Timeout Fallback
-    setTimeout(() => {
-        if (tabIds.length < expectedTabs) {
-            console.warn("[WARN] Some tabs failed to open. Proceeding with partial save.");
-            saveSessionAndRespond(true); // Partial save
-        }
-    }, 5000); // 5-second timeout
-
-    function saveSessionAndRespond(partial = false) {
-        if (tabIds.length === expectedTabs || partial) {
-            console.log("[DEBUG] Saving Session. Partial Save:", partial);
-            chrome.storage.local.set({
-                lastInvestigationSession: {
-                    hostname,
-                    detectionTabId,
-                    investigationTabIds,
-                    tabIds,
-                    startTime: start,
-                    endTime: end,
-                    detectionTime,
-                },
+                // If all tabs are opened, save the session and send the response
+                if (tabIds.length === expectedTabs) {
+                    saveSessionAndRespond();
+                }
             });
-            sendResponse({ success: true, detectionTabId, investigationTabIds });
-        }
+        });
+
+        // Fallback for saving the session if not all tabs opened
+        setTimeout(() => {
+            if (tabIds.length < expectedTabs) {
+                logWarn("Some tabs failed to open. Proceeding with partial save.");
+                saveSessionAndRespond();
+            }
+        }, 5000);
+    });
+
+    function saveSessionAndRespond() {
+        logDebug("Saving session with the following data:", { detectionTabId, investigationTabIds, tabIds });
+        chrome.storage.local.set({
+            lastInvestigationSession: {
+                input,
+                detectionTabId,
+                investigationTabIds,
+                tabIds,
+                startTime: start,
+                endTime: end,
+            },
+        });
+        sendResponse({ success: true, detectionTabId, investigationTabIds });
     }
 }
 
@@ -477,15 +612,15 @@ function handleUpdateTabs(session, tabs, baseUrl, sendResponse) {
         return;
     }
 
-    const { hostname, startTime, endTime, tabIds } = session;
+    const { input, startTime, endTime, tabIds } = session;
 
-    if (!hostname || !tabIds) {
+    if (!input || !tabIds) {
         console.warn("Incomplete session data.");
         sendResponse({ success: false, message: "Incomplete session data." });
         return;
     }
 
-    const investigationUrls = generateInvestigationUrls(baseUrl, hostname, startTime, endTime, tabs);
+    const investigationUrls = generateInvestigationUrls(baseUrl, input, startTime, endTime, tabs);
     const toastMessages = ["Detection Source", "Detection Target", "Network Activity"];
     const toastColors = ["#FFCC00", "#28a745", "#FFA500"]; // Yellow, Green, Orange
 
@@ -513,98 +648,89 @@ function handleUpdateTabs(session, tabs, baseUrl, sendResponse) {
 }
 
 /**
- * Open a new tab and optionally display a toast message on load.
- */
-function openTabWithToast(url, isActive, message, callback) {
-    chrome.tabs.create({ url, active: isActive }, (tab) => {
-        if (chrome.runtime.lastError || !tab || !tab.id) {
-            console.error("Error opening tab:", chrome.runtime.lastError);
-            return;
-        }
-
-        if (message) showToastInTab(tab.id, message, "#003366");
-
-        if (callback) callback(tab.id);
-    });
-}
-
-/**
  * Display a toast notification in a specific tab.
  */
-function showToastInTab(tabId, message, color = "#003366") {
-    if (!tabId) return;
-
+function showToastInTab(tabId, title = "Notification", message = "This is a toast message.", bgColor = "#4CAF50") {
     chrome.scripting.executeScript({
         target: { tabId },
-        func: (msg, bgColor) => {
+        func: (title, msg, bgColor) => {
+            // Remove existing toast to prevent duplicates
             const existingToast = document.getElementById("toast-notification");
             if (existingToast) existingToast.remove();
 
+            // Create toast container
             const toast = document.createElement("div");
             toast.id = "toast-notification";
             toast.innerHTML = `
-                <span>${msg}</span>
-                <button id="toast-close-btn" style="
-                    margin-left: 15px; 
-                    border: none; 
-                    background: transparent; 
-                    color: #fff; 
-                    font-size: 20px; 
-                    cursor: pointer; 
-                    font-weight: bold;">✖</button>
+                <div id="toast-header" style="cursor: grab; padding: 10px; background: rgba(0, 0, 0, 0.1); border-bottom: 1px solid rgba(255, 255, 255, 0.2); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 16px; font-weight: bold;">${title}</span>
+                    <button id="toast-close" style="background: none; border: none; color: #fff; font-size: 14px; cursor: pointer;">✖</button>
+                </div>
+                <div id="toast-body" style="padding: 15px; font-size: 14px; line-height: 1.5;">${msg}</div>
             `;
+
+            // Apply styles
             Object.assign(toast.style, {
                 position: "fixed",
-                top: "50%",
+                top: "5%",
                 left: "50%",
-                transform: "translate(-50%, -50%)",
+                transform: "translate(-50%, 0)",
                 backgroundColor: bgColor,
                 color: "#fff",
-                padding: "20px 30px",
-                borderRadius: "10px",
-                fontSize: "16px",
+                width: "320px",
+                borderRadius: "12px",
+                boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
                 zIndex: "10000",
-                textAlign: "center",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                boxShadow: "0px 4px 15px rgba(0,0,0,0.2)",
-                cursor: "grab",
+                fontFamily: "Roboto, Arial, sans-serif",
+                overflow: "hidden",
+                opacity: "0",
+                transition: "opacity 0.3s ease, transform 0.3s ease",
             });
 
             document.body.appendChild(toast);
 
+            // Fade in
+            setTimeout(() => {
+                toast.style.opacity = "1";
+            }, 50);
+
+            // Dragging functionality
+            const header = document.getElementById("toast-header");
             let isDragging = false;
-            let offsetX = 0;
-            let offsetY = 0;
+            let startX, startY, initialX, initialY;
 
-            const onMouseMove = (e) => {
-                if (!isDragging) return;
-                toast.style.left = `${e.clientX - offsetX}px`;
-                toast.style.top = `${e.clientY - offsetY}px`;
-            };
-
-            const onMouseUp = () => {
-                isDragging = false;
-                document.removeEventListener("mousemove", onMouseMove);
-                document.removeEventListener("mouseup", onMouseUp);
-            };
-
-            toast.onmousedown = (e) => {
+            header.addEventListener("mousedown", (e) => {
                 isDragging = true;
-                offsetX = e.clientX - toast.getBoundingClientRect().left;
-                offsetY = e.clientY - toast.getBoundingClientRect().top;
-                document.addEventListener("mousemove", onMouseMove);
-                document.addEventListener("mouseup", onMouseUp);
-            };
+                startX = e.clientX;
+                startY = e.clientY;
+                const rect = toast.getBoundingClientRect();
+                initialX = rect.left;
+                initialY = rect.top;
+                toast.style.cursor = "grabbing";
+            });
 
-            const closeButton = document.getElementById("toast-close-btn");
-            closeButton.onclick = () => {
-                toast.remove();
-            };
+            document.addEventListener("mousemove", (e) => {
+                if (!isDragging) return;
 
-            toast.ondragstart = () => false; // Prevent default drag behavior
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+
+                toast.style.left = `${initialX + deltaX}px`;
+                toast.style.top = `${initialY + deltaY}px`;
+                toast.style.transform = ""; // Reset transform to enable manual positioning
+            });
+
+            document.addEventListener("mouseup", () => {
+                isDragging = false;
+                toast.style.cursor = "grab";
+            });
+
+            // Close button logic
+            document.getElementById("toast-close").addEventListener("click", () => {
+                toast.style.opacity = "0";
+                setTimeout(() => toast.remove(), 300); // Allow fade-out
+            });
         },
-        args: [message, color],
+        args: [title, message, bgColor],
     });
 }

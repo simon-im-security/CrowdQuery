@@ -1,10 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "NG-SIEM Toolkit",
-  "version": "2024.12.11",
-  "description": "Automates detection actions, displays detection data, opens investigation pages, and maintains recent hostname searches.",
+  "name": "CrowdQuery",
+  "version": "2025.05.27",
+  "description": "Enhances detection analysis with detailed CrowdStrike SIEM data and direct investigation links.",
+  "incognito": "split",
   "permissions": [
     "storage",
+    "cookies",
     "tabs",
     "scripting",
     "notifications",
@@ -13,7 +15,12 @@
   ],
   "icons": {
     "16": "icons/16.png",
-    "128": "icons/128.png"
+    "32": "icons/32.png",
+    "64": "icons/64.png",
+    "128": "icons/128.png",
+    "256": "icons/256.png",
+    "512": "icons/512.png",
+    "1024": "icons/1024.png"
   },
   "background": {
     "service_worker": "background.js",
@@ -38,14 +45,20 @@
       "suggested_key": {
         "default": "Ctrl+Shift+Y"
       },
-      "description": "Open the CrowdStrike NG-SIEM popup interface"
+      "description": "Open the CrowdQuery popup interface"
     }
   },
   "options_page": "settings.html",
   "web_accessible_resources": [
     {
       "resources": [
+        "icons/16.png",
+        "icons/32.png",
+        "icons/64.png",
         "icons/128.png",
+        "icons/256.png",
+        "icons/512.png",
+        "icons/1024.png",
         "popup.js",
         "content.js",
         "popup.html", 

@@ -1,8 +1,8 @@
 <!-- 
-  Title: Settings Page for NG-SIEM Toolkit
-  Description: Provides configuration options for base URL, investigation queries, and other settings for the NG-SIEM Toolkit extension.
+  Title: Settings Page for CrowdQuery
+  Description: Provides configuration options for base URL, investigation queries, and other settings..
   Author: Simon .I
-  Version: 2024.12.11
+  Version: 2025.05.27
 -->
 
 <!DOCTYPE html>
@@ -10,14 +10,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NG-SIEM Toolkit Settings</title>
+  <title>CrowdQuery Settings</title>
   <style>
     :root {
-      --button-dark-blue: #003366;
-      --button-hover-dark-blue: #002244;
+      --button-black: #0d0d0d;
+      --button-hover-black: #333;
       --button-green: #28a745;
       --button-hover-green: #218838;
-      --input-hover-border: #0056b3;
+      --input-hover-border: #d32f2f;
       --toast-success: #28a745;
       --toast-error: #f44336;
     }
@@ -35,10 +35,10 @@
 
     .container {
       background: #ffffff;
-      border: 1px solid #ddd;
+      border: 2px solid var(--button-black);
       border-radius: 12px;
       padding: 25px;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
       margin-top: 25px;
     }
 
@@ -46,7 +46,7 @@
       font-size: 26px;
       font-weight: bold;
       margin-bottom: 20px;
-      color: #333;
+      color: var(--button-black);
     }
 
     .instructions {
@@ -86,6 +86,8 @@
       box-sizing: border-box;
       border: 1px solid #ccc;
       transition: border 0.3s ease, box-shadow 0.3s ease;
+      background-color: #fff;
+      color: #000;
     }
 
     input[type="text"]:hover, textarea:hover {
@@ -110,11 +112,11 @@
     }
 
     .save-button {
-      background-color: var(--button-green);
+      background-color: var(--button-black);
     }
 
     .save-button:hover {
-      background-color: var(--button-hover-green);
+      background-color: var(--button-hover-black);
       transform: translateY(-2px);
     }
 
@@ -160,7 +162,6 @@
       font-size: 14px;
     }
 
-    /* Toast Styles */
     #settingsToast {
       position: fixed;
       bottom: 20px;
@@ -179,11 +180,11 @@
   <script src="settings.js" defer></script>
 </head>
 <body>
-  <div class="version">Version: 2024.11.19</div>
+  <div class="version">Version: 2025.05.27</div>
 
   <div class="container">
-    <div class="page-title">NG-SIEM Toolkit Settings</div>
-    <img src="icons/128.png" alt="NG-SIEM Toolkit Icon" aria-label="NG-SIEM Toolkit Icon">
+    <div class="page-title">CrowdQuery Settings</div>
+    <img src="icons/128.png" alt="CrowdQuery Icon" aria-label="CrowdQuery Icon">
 
     <p class="instructions">
       Update the settings below and click "Save Settings" to apply changes. Default variables like <code>$hostname</code> and <code>$detectionTime</code> will be expanded dynamically during searches.
@@ -192,7 +193,7 @@
     <div class="variable-explanation">
       <p><strong>Variable Definitions:</strong></p>
       <ul>
-        <li><code>$hostname</code>: Populated from the "Hostname" field in the popup.</li>
+        <li><code>$input</code>: Populated from the "Input" field in the popup.</li>
         <li><code>$detectionTime</code>: Populated from the "Detection Time" field in the popup.</li>
       </ul>
     </div>
@@ -221,7 +222,6 @@
 
     <button id="saveSettings" class="save-button" aria-label="Save Settings">Save Settings</button>
 
-    <!-- Toast Notification -->
     <div id="settingsToast"></div>
   </div>
 </body>

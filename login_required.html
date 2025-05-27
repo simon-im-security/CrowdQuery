@@ -1,7 +1,7 @@
-<!-- Title: Login Required Page for NG-SIEM Toolkit
+<!-- Title: Login Required Page for CrowdQuery
   Description: Displays login options for CrowdStrike sessions to ensure the extension operates with an active session.
   Author: Simon .I
-  Version: 2024.12.11
+  Version: 2025.05.27
 -->
 
 <!DOCTYPE html>
@@ -9,7 +9,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login Required</title>
+  <title>CrowdQuery Login</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -38,7 +38,7 @@
     .container h1 {
       font-size: 24px;
       margin-bottom: 15px;
-      color: #333;
+      color: #0d0d0d;
     }
     .container p {
       font-size: 16px;
@@ -60,10 +60,10 @@
       transition: background-color 0.3s ease;
     }
     .local-login {
-      background-color: #0073e6;
+      background-color: #d32f2f;
     }
     .local-login:hover {
-      background-color: #005bb5;
+      background-color: #a30000;
     }
     .sso-login {
       background-color: #28a745;
@@ -80,24 +80,23 @@
       text-decoration: none;
       color: #fff;
       padding: 12px 20px;
-      background-color: #0073e6;
+      background-color: #d32f2f;
       border-radius: 8px;
       font-size: 16px;
       font-weight: bold;
       transition: background-color 0.3s ease;
     }
     .error-container a:hover {
-      background-color: #005bb5;
+      background-color: #a30000;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <img src="icons/128.png" alt="App Icon" />
-    <h1>CrowdStrike Session Required</h1>
-    <p>Log in and retry the search.</p>
+    <img src="icons/128.png" alt="CrowdQuery Icon" />
+    <h1>CrowdQuery Session Required</h1>
+    <p>Please log in to CrowdStrike and retry your search.</p>
     <div class="button-container">
-      <!-- Login buttons dynamically updated -->
       <a href="#" id="localLogin" class="local-login">Local Login</a>
       <a href="#" id="ssoLogin" class="sso-login">SSO Login</a>
     </div>

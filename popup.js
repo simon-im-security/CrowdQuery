@@ -1,14 +1,14 @@
-// Title: Popup Script for NG-SIEM Toolkit
-// Description: Manages hostname input, base URL configuration, and time-based detection searches for the NG-SIEM Toolkit.
+// Title: Popup Script for CrowdQuery
+// Description: Manages input input, base URL configuration, and time-based detection searches.
 // Author: Simon .I
-// Version: 2024.12.11
+// Version: 2025.05.27
 
 // Declare global variables
-let hostnameInput, detectionTimeInput, timeRangeSelect, scanButton, updateButton, settingsButton, recentSearchesContainer;
+let inputInput, detectionTimeInput, timeRangeSelect, scanButton, updateButton, settingsButton, recentSearchesContainer;
 
 document.addEventListener("DOMContentLoaded", () => {
   // Initialise variables with DOM elements
-  hostnameInput = document.getElementById("hostnameInput");
+  inputInput = document.getElementById("inputInput");
   detectionTimeInput = document.getElementById("detectionTimeInput");
   timeRangeSelect = document.getElementById("timeRangeSelect");
   scanButton = document.getElementById("scanButton");
@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   recentSearchesContainer = document.getElementById("recentSearchesContainer");
 
   // Validate that all elements are correctly initialised
-  if (!hostnameInput || !detectionTimeInput || !scanButton || !updateButton || !timeRangeSelect) {
+  if (!inputInput || !detectionTimeInput || !scanButton || !updateButton || !timeRangeSelect) {
     console.error("One or more required DOM elements are missing.");
     return;
   }
@@ -30,20 +30,20 @@ document.addEventListener("DOMContentLoaded", () => {
   updateButton.addEventListener("click", updateInvestigationTabs);
   settingsButton.addEventListener("click", () => chrome.runtime.openOptionsPage());
 
-  // Clear detection time when the hostname is edited
-  hostnameInput.addEventListener(
+  // Clear detection time when the input is edited
+  inputInput.addEventListener(
     "input",
     debounce(() => {
-      if (hostnameInput.value.trim()) {
+      if (inputInput.value.trim()) {
         detectionTimeInput.value = ""; // Clear detection time
-        console.log("Cleared detection time as hostname is being edited.");
+        console.log("Cleared detection time as input is being edited.");
       }
       saveFields(); // Save the current state
     }, 300)
   );
 
   // Save fields and toggle controls on input
-  [hostnameInput, detectionTimeInput, timeRangeSelect].forEach((el) => {
+  [inputInput, detectionTimeInput, timeRangeSelect].forEach((el) => {
     el.addEventListener("input", debounce(saveFields, 300));
     el.addEventListener("input", debounce(toggleControls, 300));
   });
@@ -52,34 +52,44 @@ document.addEventListener("DOMContentLoaded", () => {
   toggleControls();
 });
 
+document.addEventListener("DOMContentLoaded", () => {
+    const inputLabel = document.getElementById("inputLabel");
+    const inputInput = document.getElementById("inputInput");
+
+    // Ensure the input label remains consistent
+    inputLabel.textContent = "Hostname";
+    inputInput.placeholder = "e.g., MacBook Pro-100";
+});
+;  
+
 /**
  * Toggle controls based on user input
  */
 function toggleControls() {
-  // Check if the hostname and detection time inputs have valid characters
-  const hasHostname = hostnameInput?.value.trim().length > 0;
+  // Check if the input and detection time inputs have valid characters
+  const hasinput = inputInput?.value.trim().length > 0;
   const hasDetectionTime = detectionTimeInput?.value.trim().length > 0;
 
   try {
-    // Enable the "Scan" button if hostname is valid
-    scanButton.disabled = !hasHostname;
+      // Enable the "Scan" button if input is valid
+      scanButton.disabled = !hasinput;
 
-    // Enable the "Update Investigation Tabs" button only if both hostname and detection time are valid
-    updateButton.disabled = !(hasHostname && hasDetectionTime);
+      // Enable the "Update Investigation Tabs" button only if both input and detection time are valid
+      updateButton.disabled = !(hasinput && hasDetectionTime);
 
-    // Disable the time range dropdown if the hostname is empty
-    timeRangeSelect.disabled = !hasHostname;
+      // Disable the time range dropdown until both input and detection time are filled
+      timeRangeSelect.disabled = !(hasinput && hasDetectionTime);
 
-    // Debugging logs to monitor state
-    console.log("Controls updated:", {
-      hasHostname,
-      hasDetectionTime,
-      scanButtonDisabled: scanButton.disabled,
-      updateButtonDisabled: updateButton.disabled,
-      timeRangeSelectDisabled: timeRangeSelect.disabled,
-    });
+      // Debugging logs to monitor state
+      console.log("Controls updated:", {
+          hasinput,
+          hasDetectionTime,
+          scanButtonDisabled: scanButton.disabled,
+          updateButtonDisabled: updateButton.disabled,
+          timeRangeSelectDisabled: timeRangeSelect.disabled,
+      });
   } catch (error) {
-    console.error("Error in toggleControls:", error);
+      console.error("Error in toggleControls:", error);
   }
 }
 
@@ -88,17 +98,17 @@ function toggleControls() {
  */
 function loadSettings() {
   chrome.storage.local.get(
-    ["lastHostname", "lastDetectionTime", "lastTimeRange", "hostnameHistory"],
+    ["lastinput", "lastDetectionTime", "lastTimeRange", "inputHistory"],
     (data) => {
-      if (!hostnameInput || !detectionTimeInput || !timeRangeSelect) {
+      if (!inputInput || !detectionTimeInput || !timeRangeSelect) {
         console.error("One or more required DOM elements are missing during loadSettings.");
         return;
       }
 
-      hostnameInput.value = data.lastHostname || "";
+      inputInput.value = data.lastinput || "";
       detectionTimeInput.value = data.lastDetectionTime || ""; // Leave blank by default
       timeRangeSelect.value = data.lastTimeRange || "Select Time Range";
-      updateHistoryDisplay(data.hostnameHistory || []);
+      updateHistoryDisplay(data.inputHistory || []);
       toggleControls(); // Ensure buttons reflect the correct initial state
     }
   );
@@ -123,11 +133,11 @@ function updateInvestigationTabs() {
           return;
       }
 
-      const { investigationTabIds, hostname } = lastInvestigationSession;
+      const { investigationTabIds, input } = lastInvestigationSession;
 
-      if (!hostname) {
-          showToast("No hostname found in the active session. Please perform a search first.", false);
-          console.warn("No hostname found in the session.");
+      if (!input) {
+          showToast("No input found in the active session. Please perform a search first.", false);
+          console.warn("No input found in the session.");
           return;
       }
 
@@ -157,7 +167,7 @@ function updateInvestigationTabs() {
           : "No Detection Time";
 
       saveRecentSearch(
-          hostname,
+          input,
           `Detection Time: ${formattedDetectionTime} (Start: ${new Date(startTime).toLocaleString()}, End: ${new Date(
               endTime
           ).toLocaleString()})`
@@ -168,7 +178,7 @@ function updateInvestigationTabs() {
           .map((query, index) => {
               try {
                   const expandedQuery = query
-                      .replace(/\$hostname/g, encodeURIComponent(hostname))
+                      .replace(/\$input/g, encodeURIComponent(input))
                       .replace(/\$startTime/g, encodeURIComponent(formatTimestamp(startTime)))
                       .replace(/\$endTime/g, encodeURIComponent(formatTimestamp(endTime)))
                       .replace(/\$detectionTime/g, formattedDetectionTime);
@@ -225,113 +235,114 @@ function updateInvestigationTabs() {
  * Execute search for detections or investigations.
  */
 function executeSearch() {
-  const hostname = hostnameInput.value.trim();
+    const input = inputInput.value.trim();
 
-  if (!hostname) {
-      showToast("Please enter a hostname before starting the search.", false);
-      return;
-  }
-
-  // Calculate the time range for the search
-  const endTime = Date.now(); // Current time
-  const startTime = endTime - 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
-
-  console.log("Executing Search (Last 7 Days):");
-  console.log("Start Time:", new Date(startTime));
-  console.log("End Time:", new Date(endTime));
-
-  // Generate the detection URL and investigation URLs
-  chrome.storage.local.get(["baseUrl", "tab1", "tab2", "tab3", "hostnameHistory"], (config) => {
-    const { baseUrl, tab1, tab2, tab3, hostnameHistory = [] } = config;
-
-    if (!baseUrl) {
-      showToast("Base URL is not configured. Please check your settings.", false);
-      return;
+    if (!input) {
+        showToast("Please enter an input before starting the search.", false);
+        return;
     }
 
-    const detectionUrl = `${baseUrl}/activity-v2/detections?filter=hostname%3A%27${encodeURIComponent(
-      hostname
-    )}%27&pageSize=200&start=${startTime}&end=${endTime}`;
+    const endTime = Date.now(); // Current time
+    const startTime = endTime - 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+    const selectedType = "hostname"; // Hardcoded since we removed selector buttons
 
-    const investigationUrls = [tab1, tab2, tab3]
-      .filter(Boolean) // Skip invalid queries
-      .map((query) => {
-        return `${baseUrl}/investigate/search?query=${encodeURIComponent(
-          query
-            .replace(/\$hostname/g, hostname)
-            .replace(/\$startTime/g, new Date(startTime).toISOString())
-            .replace(/\$endTime/g, new Date(endTime).toISOString())
-        )}&repo=all&start=${startTime}&end=${endTime}`;
-      });
+    console.log("Executing Search:");
+    console.log("Input Type:", selectedType);
+    console.log("Input Value:", input);
+    console.log("Start Time:", new Date(startTime));
+    console.log("End Time:", new Date(endTime));
 
-    // Update hostname history
-    const timestamp = new Date().toLocaleString();
-    const updatedHistory = [
-      { hostname, timestamp },
-      ...hostnameHistory.filter((item) => item.hostname !== hostname),
-    ].slice(0, 10); // Limit to 10 entries
+    chrome.storage.local.get(["baseUrl", "tab1", "tab2", "tab3", "inputHistory"], (config) => {
+        const { baseUrl, tab1, tab2, tab3, inputHistory = [] } = config;
 
-    // Store the session data and history in chrome.storage.local
-    chrome.storage.local.set({
-      lastSearchUrls: {
-        detectionUrl,
-        investigationUrls,
-      },
-      hostnameHistory: updatedHistory,
-      lastInvestigationSession: {
-        hostname,
-        detectionTabId: null, // Placeholder
-        investigationTabIds: [],
-        detectionUrl,
-        investigationUrls,
-        startTime,
-        endTime,
-      },
-    });
-
-    // Proceed with opening the tabs as usual
-    chrome.runtime.sendMessage(
-      {
-        action: "openCrowdStrikePages",
-        hostname,
-        start: startTime,
-        end: endTime,
-        detectionUrl,
-        investigationUrls,
-      },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("Message Error:", chrome.runtime.lastError.message);
-        } else if (response?.success) {
-          console.log("Message Sent for Last 7 Days Search:", {
-            hostname,
-            start: startTime,
-            end: endTime,
-            detectionUrl,
-            investigationUrls,
-          });
-
-          // Update the session data with tab IDs after tabs are opened
-          chrome.storage.local.set({
-            lastInvestigationSession: {
-              hostname,
-              detectionTabId: response.detectionTabId, // Track detection tab separately
-              investigationTabIds: response.investigationTabIds,
-              detectionUrl,
-              investigationUrls,
-              startTime,
-              endTime,
-            },
-          });
-
-          showToast(`Search initiated for hostname: ${hostname}`, true);
-        } else {
-          console.warn("Search failed to initiate. No response received.");
-          showToast("Failed to open search tabs. Check settings or connection.", false);
+        if (!baseUrl) {
+            showToast("Base URL is not configured. Please check your settings.", false);
+            return;
         }
-      }
-    );
-  });
+
+        // Construct the primary URL (hostname only)
+        let primaryUrl = `${baseUrl}/activity-v2/detections?filter=hostname%3A%27${encodeURIComponent(input)}%27&pageSize=200&start=${startTime}&end=${endTime}`;
+
+        console.log("Primary URL:", primaryUrl);
+ 
+        // Construct investigation URLs
+        const investigationUrls = [tab1, tab2, tab3]
+            .filter(Boolean) // Skip invalid queries
+            .map((query) => {
+                return `${baseUrl}/investigate/search?query=${encodeURIComponent(
+                    query
+                        .replace(/\$input/g, input)
+                        .replace(/\$startTime/g, new Date(startTime).toISOString())
+                        .replace(/\$endTime/g, new Date(endTime).toISOString())
+                )}&repo=all&start=${startTime}&end=${endTime}`;
+            });
+
+        console.log("Investigation URLs:", investigationUrls);
+
+        // Store the session data
+        chrome.storage.local.set({
+            lastSearchUrls: {
+                primaryUrl,
+                investigationUrls,
+            },
+            lastInvestigationSession: {
+                input,
+                selectedType,
+                primaryUrl,
+                investigationUrls,
+                startTime,
+                endTime,
+            },
+        });
+
+        // Save the search to recent searches
+        saveRecentSearch(input, null, selectedType);
+
+        // Open all tabs (primary + investigation)
+        chrome.runtime.sendMessage(
+            {
+                action: "checkAndOpenTabs",
+                input,
+                selectedType,
+                start: startTime,
+                end: endTime,
+                primaryUrl,
+                investigationUrls,
+            },
+            (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error("Message Error:", chrome.runtime.lastError.message);
+                } else if (response?.success) {
+                    console.log("Tabs successfully opened:", {
+                        input,
+                        selectedType,
+                        start: startTime,
+                        end: endTime,
+                        primaryUrl,
+                        investigationUrls,
+                    });
+                    showToast(`Search initiated for ${selectedType}: ${input}`, true);
+                } else {
+                    console.warn("Search failed to initiate:", response.message || "No response received.");
+                    showToast("Failed to open search tabs. Check settings or connection.", false);
+                }
+            }
+        );
+    });
+}  
+
+/**
+ * Validate if a given string is a valid URL.
+ * @param {string} url - The URL string to validate.
+ * @returns {boolean} - True if valid, false otherwise.
+ */
+function isValidUrl(url) {
+    try {
+        new URL(url); // Attempt to create a URL object
+        return true;
+    } catch (e) {
+        return false;
+    }
 }
 
   /**
@@ -364,15 +375,15 @@ function executeSearch() {
   }
 
   /**
-   * Save the hostname, detection time, and time range fields.
+   * Save the input, detection time, and time range fields.
    */
   function saveFields() {
-    const hostname = hostnameInput.value.trim();
+    const input = inputInput.value.trim();
     const detectionTime = detectionTimeInput.value.trim();
     const timeRange = timeRangeSelect.value;
 
     chrome.storage.local.set({
-        lastHostname: hostname,
+        lastinput: input,
         lastDetectionTime: detectionTime,
         lastTimeRange: timeRange,
     });
@@ -381,62 +392,59 @@ function executeSearch() {
 }
 
 /**
- * Save the hostname to recent searches and update the display.
+ * Save the input to recent searches and update the display.
  * Handles parsing of dynamic detection times like "Last 7 days (up to ...)".
- * @param {string} hostname - The hostname to save.
+ * @param {string} input - The input to save.
  * @param {string} detectionTime - The detection time string, possibly dynamic.
  */
-function saveRecentSearch(hostname, detectionTime) {
+function saveRecentSearch(input, detectionTime) {
   const timestamp = new Date().toLocaleString(); // Current time when the search is saved
-  let formattedDetectionTime = detectionTime || "No Detection Time"; // Default if detectionTime is empty
+  let formattedDetectionTime = detectionTime;
 
-  try {
-    // Check if detectionTime exists and contains "up to"
-    if (detectionTime && detectionTime.includes("up to")) {
-      const extractedDate = detectionTime.match(/up to\s+([\w\s:,/]+)$/); // Extract date after "up to"
-      if (extractedDate && extractedDate[1]) {
-        const parsedDate = new Date(extractedDate[1].trim());
-        if (!isNaN(parsedDate.getTime())) {
-          // Successfully parsed date, format it
-          formattedDetectionTime = `${parsedDate.toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: false,
-          })} (${parsedDate.toISOString().replace("T", " ").split(".")[0]} UTC)`;
-        } else {
-          formattedDetectionTime = "Invalid Detection Time"; // Fallback for invalid parsed date
-        }
-      } else {
-        formattedDetectionTime = "Invalid Detection Time"; // Fallback for unexpected format
+  // Default to "Last 7 Days" if detectionTime is empty
+  if (!detectionTime) {
+      formattedDetectionTime = "Last 7 Days";
+  } else {
+      try {
+          // Parse and format detection time if provided
+          const parsedDate = new Date(detectionTime.trim());
+          if (!isNaN(parsedDate.getTime())) {
+              formattedDetectionTime = `${parsedDate.toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: false,
+              })} (${parsedDate.toISOString().replace("T", " ").split(".")[0]} UTC)`;
+          } else {
+              formattedDetectionTime = "Invalid Detection Time"; // Fallback for invalid format
+          }
+      } catch (error) {
+          console.error("Error formatting detection time:", error);
+          formattedDetectionTime = "Error Processing Detection Time";
       }
-    }
-  } catch (error) {
-    console.error("Error formatting detection time:", error);
-    formattedDetectionTime = "Error Processing Detection Time"; // Explicit error fallback
   }
 
-  // Fetch and update the hostname history in Chrome storage
-  chrome.storage.local.get("hostnameHistory", (data) => {
-    const history = data.hostnameHistory || [];
+  // Fetch and update the input history in Chrome storage
+  chrome.storage.local.get("inputHistory", (data) => {
+      const history = data.inputHistory || [];
 
-    // Add the new search entry
-    const newEntry = { hostname, detectionTime: formattedDetectionTime, timestamp };
-    const updatedHistory = [
-      newEntry,
-      ...history.filter(
-        (item) => item.hostname !== hostname || item.detectionTime !== formattedDetectionTime
-      ),
-    ].slice(0, 10); // Limit to the most recent 10 entries
+      // Add the new search entry
+      const newEntry = { input, detectionTime: formattedDetectionTime, timestamp };
+      const updatedHistory = [
+          newEntry,
+          ...history.filter(
+              (item) => item.input !== input || item.detectionTime !== formattedDetectionTime
+          ),
+      ].slice(0, 10); // Limit to the most recent 10 entries
 
-    // Save the updated history to chrome.storage.local
-    chrome.storage.local.set({ hostnameHistory: updatedHistory }, () => {
-      console.log("Recent search saved:", newEntry);
-      updateHistoryDisplay(updatedHistory);
-    });
+      // Save the updated history to chrome.storage.local
+      chrome.storage.local.set({ inputHistory: updatedHistory }, () => {
+          console.log("Recent search saved:", newEntry);
+          updateHistoryDisplay(updatedHistory);
+      });
   });
 }
      
@@ -450,30 +458,28 @@ function saveRecentSearch(hostname, detectionTime) {
         return;
     }
 
-    history.forEach(({ hostname, detectionTime, timestamp }) => {
+    history.forEach(({ input, detectionTime, timestamp }) => {
         const entry = document.createElement("div");
         entry.innerHTML = `
-            <a href="#" class="history-link">${hostname}</a>
+            <a href="#" class="history-link">${input}</a>
             <span class="timestamp">${timestamp}</span>
-            <small>${detectionTime || "(Last 7 Days)"}</small>`;
+            <small>${detectionTime}</small>`;
         
         entry.querySelector(".history-link").addEventListener("click", (e) => {
             e.preventDefault();
-            // Populate the hostname and detection time fields
-            hostnameInput.value = hostname;
-            detectionTimeInput.value = detectionTime === "(Last 7 Days)" ? "" : detectionTime;
+
+            // Populate the input and detection time fields
+            inputInput.value = input;
+            detectionTimeInput.value = detectionTime === "Last 7 Days" ? "" : detectionTime;
 
             // Save fields to ensure they're remembered
             saveFields();
 
-            // Save this search to recent history
-            saveRecentSearch(hostname, detectionTime || "(Last 7 Days)");
-
             // Feedback to the user
-            showToast(`Loaded ${hostname} into the fields.`, true);
+            showToast(`Loaded ${input} into the fields.`, true);
 
             // Debugging logs
-            console.log("Hostname loaded from history:", hostname);
+            console.log("input loaded from history:", input);
             console.log("Detection Time loaded from history:", detectionTime);
         });
 

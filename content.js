@@ -1,7 +1,7 @@
-// Title: Content Script for NG-SIEM Toolkit
-// Description: Displays notifications for detection actions, managed by the background script for NG-SIEM Toolkit.
+// Title: Content Script for CrowdQuery
+// Description: Displays notifications for detection actions, managed by the background script.
 // Author: Simon .I
-// Version: 2024.12.11
+// Version: 2025.05.27
 
 (() => {
     /**
