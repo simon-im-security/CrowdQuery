@@ -1,54 +1,69 @@
 # CrowdQuery
 
-This browser extension is designed to streamline and optimise detection and investigation workflows within CrowdStrike.  
-Note, this project is not affiliated with CrowdStrike.
+CrowdQuery is a browser extension that streamlines detection and investigation workflows in CrowdStrike.  
+Note: This project is not affiliated with CrowdStrike.
 
 <div align="center">
   <img src="https://github.com/simon-im-security/CrowdQuery/blob/main/Images/main.png" alt="Main Interface - Popup HTML" width="45%">
   <img src="https://github.com/simon-im-security/CrowdQuery/blob/main/Images/settings.png" alt="Settings Page - Settings HTML" width="45%">
 </div>
 
-- **Left Image**: Main interface (Popup HTML) showing the extension’s search and detection features.
-- **Right Image**: Settings page (Settings HTML) for configuring custom investigation queries.
+- **Left Image**: Main interface (Popup HTML) showing detection lookup and tab launching.
+- **Right Image**: Settings interface (Settings HTML) used to customise investigation queries.
 
 ## Main Features
 
-- **Automates detection search queries**
-- **Provides tools for customisable searches**
+- 🔍 **Automates detection search queries**
+- ⚙️ **Customisable investigation templates**
+- 🧭 **Fast navigation into CrowdStrike Investigation views**
+
+## Tab Breakdown
+
+Each tab in CrowdQuery corresponds to a different investigation lens within CrowdStrike:
+
+- **Tab 1 – Detection Overview:**  
+  Quickly opens CrowdStrike's standard detection dashboard filtered by hostname.
+
+- **Tab 2 – Command Line Activity:**  
+  Raw command-line execution data from relevant processes.
+
+- **Tab 3 – Script Activity:**  
+  Extracts executed scripts (e.g., PowerShell, Bash).
+
+- **Tab 4 – Network Connections:**  
+  Displays remote IP connections and correlates them with process data.
 
 ## Installation
 
 CrowdQuery works on Chromium-based browsers such as **Chrome**, **Edge**, **Brave**, and others.  
-**⚠️ It must be installed on the same browser you use to access CrowdStrike.**  
-Follow these steps to install:
+**⚠️ It must be installed on the same browser you use to access CrowdStrike.**
 
 1. **Download the ZIP File:**
    - Visit the [download page](https://github.com/simon-im-security/CrowdQuery/releases/tag/main).
-   - Click the **CrowdQuery_x.x.zip** button to begin downloading the app.
+   - Click the **CrowdQuery_x.x.zip** to begin downloading the app.
 
 2. **Extract the ZIP File:**
-   - Unzip the downloaded file to a folder on your computer.
+   - Unzip the file to a folder on your machine.
 
 3. **Enable Developer Mode:**
-   - Open your browser and go to the extensions page:
-     - For Chrome, Edge, or Brave: Navigate to `chrome://extensions/`.
-   - Enable **Developer mode** by toggling the button in the top-right corner of the extensions page.
+   - Go to `chrome://extensions/` in your browser.
+   - Toggle **Developer mode** in the top-right.
 
 4. **Load the Extension:**
-   - Click **Load unpacked** and select the folder where you extracted the ZIP file in Step 2.
+   - Click **Load unpacked** and select the folder from Step 2.
 
 5. **Verify Installation:**
-   - CrowdQuery should now appear in your list of extensions.
+   - CrowdQuery will appear in your list of browser extensions.
 
 ---
 
 ## Supported Servers
 
-- **Current:** `us-2`  
-- The extension is designed to function across all CrowdStrike servers. If you encounter any compatibility issues, please provide your CrowdStrike server URL (e.g., `falcon.us-1.xxx`) and any error logs so that support can be extended accordingly.
+- ✅ **Current Default:** `us-2`
+- 🌐 Designed to support all CrowdStrike cloud regions.  
+  If you encounter issues, provide your region’s base URL (e.g., `falcon.us-1.crowdstrike.com`) and any relevant error logs for troubleshooting.
 
 ## License
 
-The extension is released under the **Attribution-ShareAlike License (CC BY-SA)**.
-
----
+Released under the **Attribution-ShareAlike License (CC BY-SA)**.  
+You may use and modify this extension, including for commercial purposes, but **must provide attribution** and **share any derivative works under the same license**.
