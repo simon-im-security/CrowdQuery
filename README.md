@@ -52,6 +52,3 @@ Follow these steps to install:
 The extension is released under the **Attribution-ShareAlike License (CC BY-SA)**.
 
 ---
-
-**🧪 Dev Tip:** Want to inspect or modify the source in a browser-based IDE? Open it instantly at  
-[github.dev/simon-im-security/CrowdQuery](https://github.dev/simon-im-security/CrowdQuery)
